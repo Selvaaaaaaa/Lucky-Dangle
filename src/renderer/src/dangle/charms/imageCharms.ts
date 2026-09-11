@@ -52,7 +52,7 @@ export const IMAGE_CHARM_CONFIGS: Record<'blue-nazar' | 'horned-mask', ImageChar
   },
   'horned-mask': {
     id: 'horned-mask',
-    name: 'Auspicious Horned Mask',
+    name: 'Drishti Bommai',
     image: hornedMaskImg,
     scale: 0.50,
     offsetX: -2.5,

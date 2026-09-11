@@ -65,7 +65,7 @@ export const CHARM_DEFINITIONS: CharmDefinition[] = [
   },
   {
     id: 'horned-mask',
-    name: 'Auspicious Horned Mask',
+    name: 'Drishti Bommai',
     subtitle: 'Fierce Protector Against Evil',
     description: 'Traditional temple guardian Mahakala / Drishti mask with sacred horns, fierce eyes, third-eye tilak, and protective scorpion tongue.',
     primaryColor: '#0284c7',
