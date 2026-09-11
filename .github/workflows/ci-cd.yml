@@ -1,0 +1,112 @@
+name: Lucky Dangle CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Package Windows Application
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Package Windows application
+        run: npm run package
+
+      - name: Verify executables exist
+        shell: pwsh
+        run: |
+          $setupExe = "dist-package/Lucky-Dangle-Setup.exe"
+          $portableExe = "dist-package/Lucky-Dangle-Portable.exe"
+
+          if (-not (Test-Path $setupExe)) {
+            Write-Error "Verification failed: $setupExe does not exist!"
+            exit 1
+          }
+          if (-not (Test-Path $portableExe)) {
+            Write-Error "Verification failed: $portableExe does not exist!"
+            exit 1
+          }
+
+          Write-Host "Verification succeeded:"
+          Write-Host "  - Found: $setupExe"
+          Write-Host "  - Found: $portableExe"
+
+      - name: Upload Windows binaries artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lucky-dangle-windows
+          path: |
+            dist-package/Lucky-Dangle-Setup.exe
+            dist-package/Lucky-Dangle-Portable.exe
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows binaries artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lucky-dangle-windows
+          path: release-assets
+
+      - name: Prepare release files
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -Path release-assets -Filter "Lucky-Dangle-Setup.exe" -Recurse | Select-Object -First 1
+          $portable = Get-ChildItem -Path release-assets -Filter "Lucky-Dangle-Portable.exe" -Recurse | Select-Object -First 1
+
+          if (-not $setup -or -not $portable) {
+            Write-Error "Release executables could not be located in downloaded artifact!"
+            exit 1
+          }
+
+          Copy-Item -Path $setup.FullName -Destination . -Force
+          Copy-Item -Path $portable.FullName -Destination . -Force
+
+          Write-Host "Prepared release binaries in root workspace:"
+          Write-Host "  - $($setup.Name)"
+          Write-Host "  - $($portable.Name)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Lucky Dangle ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            Lucky-Dangle-Setup.exe
+            Lucky-Dangle-Portable.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
