@@ -37,7 +37,7 @@ jobs:
         run: npm run build
 
       - name: Package Windows application
-        run: npm run package
+        run: npm run package -- --publish never
 
       - name: Verify executables exist
         shell: pwsh
